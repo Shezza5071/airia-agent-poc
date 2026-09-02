@@ -1,0 +1,73 @@
+name: Deploy Agent — Dev → UAT → Prod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agents/**/pipelineDefinition.json"
+  workflow_dispatch:
+    inputs:
+      agent_path:
+        description: "Folder of the agent to deploy"
+        required: true
+        default: "agents/example-agent"
+
+# One linked pipeline: each job only starts once the previous one succeeds
+# (`needs:`), and each job's `environment:` is both where its Airia
+# credentials + project id live AND where GitHub's approval gate is
+# enforced (Settings -> Environments -> Required reviewers). "development"
+# has none, so it deploys straight through; "uat" and "production" pause
+# for a human approval in the Actions tab before the job body runs.
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment: development
+    outputs:
+      agent-id: ${{ steps.deploy.outputs.agent-id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote to Airia (Dev project)
+        id: deploy
+        uses: ./.github/actions/promote-to-airia
+        with:
+          agent-path: ${{ github.event.inputs.agent_path || 'agents/example-agent' }}
+          conflict-resolution-strategy: SkipConflictingEntities
+          airia-api-token: ${{ secrets.AIRIA_API_TOKEN }}
+          airia-api-endpoint: ${{ secrets.AIRIA_API_ENDPOINT }}
+          airia-project-id: ${{ secrets.AIRIA_PROJECT_ID }}
+
+  deploy-uat:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: uat
+    outputs:
+      agent-id: ${{ steps.deploy.outputs.agent-id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote to Airia (UAT project)
+        id: deploy
+        uses: ./.github/actions/promote-to-airia
+        with:
+          agent-path: ${{ github.event.inputs.agent_path || 'agents/example-agent' }}
+          conflict-resolution-strategy: SkipConflictingEntities
+          airia-api-token: ${{ secrets.AIRIA_API_TOKEN }}
+          airia-api-endpoint: ${{ secrets.AIRIA_API_ENDPOINT }}
+          airia-project-id: ${{ secrets.AIRIA_PROJECT_ID }}
+
+  deploy-prod:
+    needs: deploy-uat
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      agent-id: ${{ steps.deploy.outputs.agent-id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote to Airia (Production project)
+        id: deploy
+        uses: ./.github/actions/promote-to-airia
+        with:
+          agent-path: ${{ github.event.inputs.agent_path || 'agents/example-agent' }}
+          conflict-resolution-strategy: OverwriteConflictingEntities
+          airia-api-token: ${{ secrets.AIRIA_API_TOKEN }}
+          airia-api-endpoint: ${{ secrets.AIRIA_API_ENDPOINT }}
+          airia-project-id: ${{ secrets.AIRIA_PROJECT_ID }}

@@ -1,0 +1,111 @@
+name: "Promote agent to Airia"
+description: >
+  Calls Airia's real, verified PipelineImport/definition API to deploy an
+  agent's pipelineDefinition.json into a target Airia project: looks up
+  whether an agent with the same name already exists in that project
+  (GET /v1/PipelinesConfig?projectId=...) and PUTs an update if so, POSTs a
+  new one otherwise. Confirmed live against the ANGLICARE SA tenant on
+  2026-09-02 (create + re-run both tested against a real project) -- this
+  replaces an earlier version of this action that guessed at a different,
+  wrong endpoint shape reverse-engineered from a third-party repo.
+
+inputs:
+  agent-path:
+    description: "Folder containing pipelineDefinition.json"
+    required: true
+  airia-api-token:
+    description: "X-API-Key value"
+    required: true
+  airia-api-endpoint:
+    description: "Tenant base URL, no path"
+    required: false
+    default: "https://prodaus.api.airia.ai"
+  airia-project-id:
+    description: "Target Airia Project GUID for this environment"
+    required: true
+  conflict-resolution-strategy:
+    description: "SkipConflictingEntities (dev/uat) or OverwriteConflictingEntities (prod release)"
+    required: false
+    default: "SkipConflictingEntities"
+
+outputs:
+  agent-id:
+    description: "The Airia pipelineId (agent id) that was created or updated"
+    value: ${{ steps.promote.outputs.agent_id }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify pipelineDefinition.json exists
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ ! -f "${{ inputs.agent-path }}/pipelineDefinition.json" ]; then
+          echo "::error::${{ inputs.agent-path }}/pipelineDefinition.json not found"
+          exit 1
+        fi
+
+    - name: Promote pipeline (upsert by name within the target project)
+      id: promote
+      shell: bash
+      env:
+        AIRIA_API_TOKEN: ${{ inputs.airia-api-token }}
+        AIRIA_API_ENDPOINT: ${{ inputs.airia-api-endpoint }}
+        AIRIA_PROJECT_ID: ${{ inputs.airia-project-id }}
+        CONFLICT_STRATEGY: ${{ inputs.conflict-resolution-strategy }}
+        AGENT_PATH: ${{ inputs.agent-path }}
+      run: |
+        set -euo pipefail
+        PIPELINE_JSON=$(jq . "$AGENT_PATH/pipelineDefinition.json")
+        NAME=$(echo "$PIPELINE_JSON" | jq -r '.agent.name')
+
+        EXISTING=$(curl -sS "$AIRIA_API_ENDPOINT/v1/PipelinesConfig?projectId=$AIRIA_PROJECT_ID&PageNumber=1&PageSize=100" \
+          -H "X-API-Key: $AIRIA_API_TOKEN" \
+          | jq -r --arg name "$NAME" '[.items[]? | select(.name==$name)][0] | (.activeVersion.pipelineId // .versions[0].pipelineId // empty)')
+
+        BODY=$(jq -n \
+          --argjson pipelineDefinition "$PIPELINE_JSON" \
+          --arg projectId "$AIRIA_PROJECT_ID" \
+          --arg strategy "$CONFLICT_STRATEGY" \
+          '{
+            pipelineDefinition: $pipelineDefinition,
+            projectId: $projectId,
+            conflictResolutionStrategy: $strategy,
+            defaultProjectBehavior: null,
+            agentImportSource: "PlatformApi",
+            credentialMappings: null,
+            datasourceMappings: null,
+            mcpServerMappings: null
+          }')
+
+        if [ -n "$EXISTING" ]; then
+          echo "Found existing agent '$NAME' in project ($EXISTING) -- updating in place"
+          METHOD=PUT
+          URL="$AIRIA_API_ENDPOINT/v1/PipelineImport/definition/$EXISTING"
+        else
+          echo "No existing agent named '$NAME' in this project -- creating new"
+          METHOD=POST
+          URL="$AIRIA_API_ENDPOINT/v1/PipelineImport/definition"
+        fi
+
+        HTTP_RESPONSE=$(curl -sS -w $'\n%{http_code}' -X "$METHOD" "$URL" \
+          -H "X-API-Key: $AIRIA_API_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "$BODY")
+
+        STATUS=$(echo "$HTTP_RESPONSE" | tail -n1)
+        RESPONSE=$(echo "$HTTP_RESPONSE" | sed '$d')
+        echo "HTTP status: $STATUS"
+        echo "$RESPONSE"
+
+        if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+          echo "::error::Airia PipelineImport/definition ($METHOD) failed with status $STATUS"
+          exit 1
+        fi
+
+        AGENT_ID=$(echo "$RESPONSE" | jq -r '.pipelineId // empty')
+        if [ -z "$AGENT_ID" ]; then
+          AGENT_ID="$EXISTING"
+        fi
+        echo "agent_id=$AGENT_ID" >> "$GITHUB_OUTPUT"
+        echo "Deployed agent id: ${AGENT_ID:-<none>}"

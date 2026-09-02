@@ -1,0 +1,127 @@
+{
+  "available": true,
+  "metadata": {
+    "id": "495a8340-0a2a-4286-b221-7b6be7f90440",
+    "tagline": "CI/CD promotion pipeline plumbing test",
+    "agentDescription": "POC agent for a dev->uat->prod promotion pipeline test. Trivial input->AI->output agent used only to validate the Airia PipelineImport/definition CI/CD mechanism.",
+    "industry": "",
+    "tasks": "",
+    "credentialExportOption": "Placeholder",
+    "dataSourceExportOption": "Placeholder",
+    "versionInformation": "1.00",
+    "state": "Preview",
+    "contributorId": null,
+    "contributorGivenName": null,
+    "contributorSurname": null,
+    "videoLink": null,
+    "readiness": null,
+    "department": null,
+    "agentLastUpdated": null,
+    "country": null
+  },
+  "agent": {
+    "id": "495a8340-0a2a-4286-b221-7b6be7f90440",
+    "name": "example-agent",
+    "executionName": "example-agent",
+    "agentIcon": null,
+    "agentDescription": "POC agent for a dev->uat->prod promotion pipeline test. Trivial input->AI->output agent used only to validate the Airia PipelineImport/definition CI/CD mechanism.",
+    "markdownDescription": null,
+    "tagline": "CI/CD promotion pipeline plumbing test",
+    "videoLink": null,
+    "industry": null,
+    "subIndustries": null,
+    "tags": ["ci-cd-poc"],
+    "agentDetails": null,
+    "alignment": "Vertical",
+    "saveToolResponsesToHistory": null,
+    "steps": [
+      {
+        "id": "ea15414e-e786-445c-a38e-75c614e891da",
+        "stepType": "inputStep",
+        "position": {"x": "48", "y": "12"},
+        "handles": [
+          {"uuid": "7afca4b7-76f8-4b02-8887-3de7e0b616dd", "type": "source", "label": "", "tooltip": "", "x": 0, "y": 0}
+        ],
+        "dependenciesObject": [],
+        "stepTitle": "Input"
+      },
+      {
+        "id": "7e5133a5-ecaa-4ddc-88f5-48cc82e15279",
+        "stepType": "AIOperation",
+        "position": {"x": "12", "y": "171"},
+        "handles": [
+          {"uuid": "af3dfdc4-d05b-4715-93d6-5de02d2e83a0", "type": "target", "label": "", "tooltip": "", "x": 0, "y": 0},
+          {"uuid": "da82f178-02a9-481c-9a6a-b0b9b53e8214", "type": "source", "label": "", "tooltip": "", "x": 0, "y": 0}
+        ],
+        "dependenciesObject": [
+          {"parentId": "ea15414e-e786-445c-a38e-75c614e891da", "parentHandleId": "7afca4b7-76f8-4b02-8887-3de7e0b616dd", "handleId": "af3dfdc4-d05b-4715-93d6-5de02d2e83a0"}
+        ],
+        "temperature": 1,
+        "includeDateTimeContext": true,
+        "includeUserDetailsContext": true,
+        "modelId": "e68c148a-5038-4fe6-8544-b889949ff03f",
+        "promptId": "36adedc1-d50b-44bc-a6cd-b52ccd111b72",
+        "toolIds": [],
+        "toolParamsJson": "{}",
+        "stepTitle": "AI Model",
+        "useUserInput": true,
+        "aiOperationStepIncludeChatHistory": false,
+        "aiOperationStepIncludeAttachments": false,
+        "aiOperationStepUseDataSource": false,
+        "selectedDataSources": []
+      },
+      {
+        "id": "e96c039b-7984-485f-8b58-f33ab2de7ff4",
+        "stepType": "outputStep",
+        "position": {"x": "72", "y": "350"},
+        "handles": [
+          {"uuid": "9c464d4d-3e2b-4050-984e-d2fdf2a323b4", "type": "target", "label": "", "tooltip": "", "x": 0, "y": 0}
+        ],
+        "dependenciesObject": [
+          {"parentId": "7e5133a5-ecaa-4ddc-88f5-48cc82e15279", "parentHandleId": "da82f178-02a9-481c-9a6a-b0b9b53e8214", "handleId": "9c464d4d-3e2b-4050-984e-d2fdf2a323b4"}
+        ],
+        "stepTitle": "Output"
+      }
+    ]
+  },
+  "dataSources": [],
+  "tools": [],
+  "memories": [],
+  "pythonCodeBlocks": [],
+  "routers": [],
+  "approvalRequests": [],
+  "webhookApprovalRequests": [],
+  "customFormApprovalRequests": [],
+  "agentCards": [],
+  "subAgents": [],
+  "subAgentInterfaces": {},
+  "deployment": null,
+  "interfaces": null,
+  "sdkSteps": [],
+  "mcpServerPlaceholders": [],
+  "prompts": [
+    {
+      "id": "36adedc1-d50b-44bc-a6cd-b52ccd111b72",
+      "name": "example-agent System Prompt",
+      "versionChangeDescription": "Initial version",
+      "promptMessage": "You are a trivial CI/CD plumbing test agent. Regardless of what the user says, reply with the single word 'yes' if you are working.",
+      "isAgentSpecific": true,
+      "isGlobal": false
+    }
+  ],
+  "models": [
+    {
+      "id": "e68c148a-5038-4fe6-8544-b889949ff03f",
+      "displayName": "Claude Sonnet 5",
+      "modelName": "claude-sonnet-5",
+      "promptId": null,
+      "systemPromptDefinition": null,
+      "inputType": null,
+      "provider": "Anthropic",
+      "sourceType": "library",
+      "libraryModelId": "831d302f-0e3b-4f02-a982-395248b97ea1",
+      "author": "Anthropic",
+      "category": "Multimodal"
+    }
+  ]
+}

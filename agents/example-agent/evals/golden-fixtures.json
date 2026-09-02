@@ -1,0 +1,10 @@
+{
+  "_comment": "PLACEHOLDER. Replace with real golden prompts / expected tool calls for this agent. Kept minimal for the POC.",
+  "cases": [
+    {
+      "name": "smoke-test",
+      "input": "Hello, are you working?",
+      "expect_contains": "yes"
+    }
+  ]
+}
